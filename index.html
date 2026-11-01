@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To Keep You Warm</title>
+<link id="icon" rel="icon" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:    #1c2b3b;
+    --denim-1: #2f4d68;
+    --denim-2: #4a6b8a;
+    --denim-3: #7d9ab5;
+    --red:     #d93a2b;
+    --red-2:   #a52a22;
+    --orange:  #e8742a;
+    --orange-2:#f0a15a;
+    --cream:   #f1e9dc;
+    --cream-2: #d9cdb8;
+    --thread:  rgba(20,20,20,0.5);
+    --seam: 3px;    --stitch: 6px;  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--navy);
+    font-family: 'Nunito', sans-serif;
+    color: var(--cream);
+  }
+
+  #quilt {
+    display: grid;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    gap: var(--seam);
+    background: var(--navy);
+  }
+
+  .patch {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .patch::after {
+    content: '';
+    position: absolute;
+    inset: var(--stitch);
+    border: 1.5px dashed var(--thread);
+    pointer-events: none;
+    box-shadow:
+      inset 4px 4px 10px rgba(255,255,255,0.12),
+      inset -5px -5px 12px rgba(0,0,0,0.2),
+      inset 0 0 2px rgba(0,0,0,0.22);
+  }
+  .patch::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.3);
+  }
+  .patch .img, .patch .pat { z-index: 1; }
+  .patch::after { z-index: 2; }
+
+  .patch .img {
+    position: absolute;
+    inset: var(--stitch);
+    display: none;
+    background-repeat: no-repeat;
+  }
+  #quilt.revealing .patch.in .img { display: block; }
+  #seams {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+  }
+  #full {
+    position: fixed;
+    inset: 0;
+    display: none;
+    z-index: 100;
+    cursor: pointer;
+    background-color: var(--navy);
+    background-size: 48px 48px;
+  }
+  #full.open { display: block; }
+  #full .pic {
+    position: absolute;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+  }
+  .patch[data-variant] .img {
+    inset: 0;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+  .patch .pat {
+    position: absolute;
+    inset: 0;
+    display: none;
+    pointer-events: none;
+    background-size: 100% 100%;
+  }
+  #quilt.revealing .patch.in[data-variant='hst'] { background-image: none !important; }
+  #quilt.revealing .patch.in .pat { display: block; }
+
+  .patch.text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: calc(var(--stitch) + 10px);
+    line-height: 1.02;
+  }
+  .patch.text .img { display: none !important; }
+  .patch.text svg.label {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .patch.text svg.label text {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    text-anchor: middle;
+    paint-order: stroke fill;
+    stroke-linejoin: round;
+  }
+  .patch.text svg.label text.stitch { fill: none; stroke: var(--thread); }
+  .patch.text svg.label text.fill { filter: url(#puff); }
+
+
+  #tex {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 200;
+    mix-blend-mode: multiply;
+    opacity: 0.5;
+  }
+
+  @media (max-width: 720px) {
+    :root { --seam: 2px; --stitch: 5px; }
+    .patch::after {
+      border-width: 1px;
+      box-shadow:
+        inset 3px 3px 7px rgba(255,255,255,0.12),
+        inset -4px -4px 8px rgba(0,0,0,0.2),
+        inset 0 0 1.5px rgba(0,0,0,0.22);
+    }
+    .patch.text { padding: calc(var(--stitch) + 6px); }
+            }
+</style>
+</head>
+<body>
+
+<div id="quilt"></div>
+
+<svg id="seams" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+
+<div id="full"><div class="pic"></div></div>
+
+<svg id="tex" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="7" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.6 1"/>
+        <feFuncG type="table" tableValues="0.6 1"/>
+        <feFuncB type="table" tableValues="0.6 1"/>
+        <feFuncA type="table" tableValues="1 1"/>
+      </feComponentTransfer>
+    </filter>
+    <filter id="puff" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.1" result="b"/>
+      <feOffset in="b" dx="-1" dy="-1" result="o1"/>
+      <feComposite in="SourceAlpha" in2="o1" operator="out" result="darkband"/>
+      <feFlood flood-color="#000000" flood-opacity="0.22" result="dk"/>
+      <feComposite in="dk" in2="darkband" operator="in" result="dark"/>
+      <feOffset in="b" dx="1" dy="1" result="o2"/>
+      <feComposite in="SourceAlpha" in2="o2" operator="out" result="lightband"/>
+      <feFlood flood-color="#ffffff" flood-opacity="0.18" result="lt"/>
+      <feComposite in="lt" in2="lightband" operator="in" result="light"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="dark"/><feMergeNode in="light"/></feMerge>
+    </filter>
+    <filter id="wear" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0025" numOctaves="3" seed="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.92 1 0.96"/>
+        <feFuncG type="table" tableValues="0.92 1 0.96"/>
+        <feFuncB type="table" tableValues="0.92 1 0.96"/>
+        <feFuncA type="table" tableValues="1 1"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="100%" height="100%" filter="url(#grain)"/>
+  <rect width="100%" height="100%" filter="url(#wear)"  style="mix-blend-mode: multiply"/>
+</svg>
+
+<script>
+const U = 'https://images.unsplash.com/';
+const P = 'https://images.pexels.com/photos/';
+const images = [
+  U + 'photo-1752752017359-1bf197243cf8?w=1800&q=70&auto=format&fit=crop',
+  U + 'photo-1755138235226-6d44ac83774a?w=1800&q=70&auto=format&fit=crop',
+  U + 'photo-1602730273286-22b077c994de?w=1800&q=70&auto=format&fit=crop',
+  U + 'photo-1610768400574-a588f7e1a7b7?w=1800&q=70&auto=format&fit=crop',
+  U + 'photo-1567303585455-eb2d2373fa4c?w=1800&q=70&auto=format&fit=crop',
+  U + 'photo-1701350659644-ae639f963f64?w=1800&q=70&auto=format&fit=crop',
+  U + 'photo-1772291320136-7bfb40006088?w=1800&q=70&auto=format&fit=crop',
+  P + '3342364/pexels-photo-3342364.jpeg?auto=compress&w=1800',
+  P + '11482124/pexels-photo-11482124.jpeg?auto=compress&w=1800',
+  P + '11482148/pexels-photo-11482148.jpeg?auto=compress&w=1800',
+  P + '12672112/pexels-photo-12672112.jpeg?auto=compress&w=1800',
+  P + '12672105/pexels-photo-12672105.jpeg?auto=compress&w=1800',
+  P + '12906320/pexels-photo-12906320.jpeg?auto=compress&w=1800',
+  P + '32641555/pexels-photo-32641555.jpeg?auto=compress&w=1800',
+  P + '37232404/pexels-photo-37232404.jpeg?auto=compress&w=1800',
+  P + '29107942/pexels-photo-29107942.jpeg?auto=compress&w=1800'
+];
+
+const css = getComputedStyle(document.documentElement);
+const col = v => css.getPropertyValue(v).trim();
+
+let seed = 20261204;
+function rnd() {
+  seed = (seed * 1664525 + 1013904223) % 4294967296;
+  return seed / 4294967296;
+}
+const pick = arr => arr[Math.floor(rnd() * arr.length)];
+const rint = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+
+
+const info = [
+  { cls: 'title',     text: 'To Keep You Warm',                     bg: '--red',     fg: '--cream' },
+  { cls: 'date',      text: 'Friday\nDecember 4',                   bg: '--orange',  fg: '--navy'    },
+  { cls: 'reception', text: 'Reception\n5 to 7 PM',                  bg: '--cream',   fg: '--denim-1' },
+  { cls: 'address',   text: '822 West Broad',                       bg: '--denim-3', fg: '--navy'    },
+  { cls: 'students',  text: 'Intro to Fiber & (Text)iles Students', bg: '--denim-1', fg: '--cream'   },
+];
+
+const quilt = document.getElementById('quilt');
+const denims  = ['--denim-1','--denim-2','--denim-3'];
+const accents = ['--red','--red-2','--orange','--orange-2','--cream','--cream-2'];
+let builtFor = null;
+
+function build() {
+  const portrait = innerHeight > innerWidth;
+  const narrow = innerWidth <= 720;
+  const key = `${narrow}-${portrait}`;
+  if (key === builtFor) return;
+  builtFor = key;
+
+  const COLS = narrow ? (portrait ? 8 : 16) : (portrait ? 10 : 16);
+  const ROWS = narrow ? (portrait ? 16 : 8) : (portrait ? 16 : 10);
+  seed = 20261204;
+  quilt.innerHTML = '';
+  quilt.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+  quilt.style.gridTemplateRows = `repeat(${ROWS}, 1fr)`;
+
+  const rects = [];
+  function split(x, y, w, h, depth) {
+    const area = w * h;
+    const tooBig = area > COLS * ROWS * 0.18;
+    const stop = !tooBig && ((w <= 1 && h <= 1) || (area <= 3) || (depth > 2 && rnd() < 0.28) || (depth > 4 && rnd() < 0.6));
+    if (stop) { rects.push({ x, y, w, h }); return; }
+    let vertical = w > h ? rnd() < 0.75 : rnd() < 0.25;
+    if (w < 2) vertical = false;
+    if (h < 2) vertical = true;
+    if (vertical) {
+      const cut = rint(1, w - 1);
+      split(x, y, cut, h, depth + 1);
+      split(x + cut, y, w - cut, h, depth + 1);
+    } else {
+      const cut = rint(1, h - 1);
+      split(x, y, w, cut, depth + 1);
+      split(x, y + cut, w, h - cut, depth + 1);
+    }
+  }
+  split(0, 0, COLS, ROWS, 0);
+
+  const minW = Math.ceil(COLS * 0.3);
+  const chosen = [];
+  const tiers = [[minW, 2], [Math.ceil(COLS * 0.2), 2], [3, 1], [2, 1]];
+  for (const [mw, mh] of tiers) {
+    rects.filter(r => !chosen.includes(r) && r.w >= mw && r.h >= mh)
+         .sort((a, b) => (b.w * b.h) - (a.w * a.h))
+         .forEach(r => { if (chosen.length < info.length) chosen.push(r); });
+    if (chosen.length >= info.length) break;
+  }
+  chosen.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+  chosen.forEach((r, i) => r.text = info[i]);
+
+  rects.filter(r => !r.text && r.w * r.h >= 4)
+       .sort((a, b) => (b.w * b.h) - (a.w * a.h))
+       .slice(0, 2).forEach(r => r.hst = true);
+
+  let lastColor = null, imgIndex = 0;
+  rects.forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'patch';
+    el.style.gridColumn = `${r.x + 1} / span ${r.w}`;
+    el.style.gridRow = `${r.y + 1} / span ${r.h}`;
+    el.rect = r;
+    if (r.text) {
+      const t = r.text;
+      el.classList.add('text', t.cls);
+      el.style.background = col(t.bg);
+      el.style.color = col(t.fg);
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'label');
+      el.appendChild(svg);
+      el.dataset.lines = t.text;
+      el.dataset.fg = col(t.fg);
+    } else {
+      let c;
+      do { c = rnd() < 0.62 ? pick(denims) : pick(accents); } while (c === lastColor);
+      lastColor = c;
+      el.style.background = col(c);
+
+      const v = rnd();
+      const big = r.w * r.h >= 4;
+      if (r.hst || (v < 0.10 && big)) {
+        let c2;
+        do { c2 = rnd() < 0.5 ? pick(denims) : pick(accents); } while (c2 === c);
+        el.dataset.variant = 'hst';
+        el.dataset.c2 = col(c2);
+        el.dataset.dir = rnd() < 0.5 ? 'a' : 'b';
+      } else if (v >= 0.10 && v < 0.26) {
+        const c2 = denims.includes(c) ? '--cream' : pick(denims);
+        el.dataset.variant = 'fan';
+        el.dataset.c2 = col(c2);
+        el.dataset.corner = pick(['bl','br','tl','tr']);
+      }
+      const n = imgIndex % images.length;
+      const img = document.createElement('div');
+      img.className = 'img';
+      el.appendChild(img);
+      el.dataset.index = n;
+      imgIndex++;
+    }
+    quilt.appendChild(el);
+  });
+}
+build();
+
+const full = document.getElementById('full');
+const pic = full.querySelector('.pic');
+(() => {
+  const a = col('--navy'), b = col('--denim-1');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" fill="${a}"/><polygon points="0,24 24,0 48,0 0,48" fill="${b}"/><polygon points="24,48 48,24 48,48" fill="${b}"/></svg>`;
+  full.style.backgroundImage = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
+})();
+
+function darken(hex, amt) {
+  const n = col('--navy');
+  const h = x => parseInt(x, 16);
+  const mix = (a, b) => Math.round(h(a) * (1 - amt) + h(b) * amt);
+  const out = [1, 3, 5].map(i => mix(hex.slice(i, i + 2), n.slice(i, i + 2)).toString(16).padStart(2, '0'));
+  return '#' + out.join('');
+}
+
+function fitText(el) {
+  const svg = el.querySelector('svg.label');
+  const lines = el.dataset.lines.split('\n');
+  const w = el.clientWidth, h = el.clientHeight;
+  const pad = w < 300 ? 14 : 22;
+  const aw = w - pad * 2, ah = h - pad * 2;
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.innerHTML = '';
+  const NS = 'http://www.w3.org/2000/svg';
+  const probe = [];
+  lines.forEach(line => {
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('font-size', 100);
+    t.textContent = line;
+    svg.appendChild(t);
+    probe.push(t);
+  });
+  probe.forEach(t => t.remove());
+  const lh = 1.02;
+  const cap = el.classList.contains('title') ? 150 : 72;
+  const measure = ls => {
+    const ws = ls.map(line => {
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('font-size', 100);
+      t.textContent = line;
+      svg.appendChild(t);
+      const wv = t.getComputedTextLength();
+      t.remove();
+      return wv;
+    });
+    return Math.min(aw / Math.max(...ws) * 100, ah / (ls.length * lh), cap);
+  };
+  const splitMid = line => {
+    const words = line.split(' ');
+    if (words.length < 3) return null;
+    let best = null, bestDiff = Infinity;
+    for (let i = 1; i < words.length; i++) {
+      const a = words.slice(0, i).join(' '), b = words.slice(i).join(' ');
+      const d = Math.abs(a.length - b.length);
+      if (d < bestDiff) { bestDiff = d; best = [a, b]; }
+    }
+    return best;
+  };
+  let bestLines = lines, fs = measure(lines);
+  const alt = lines.flatMap(l => splitMid(l) || [l]);
+  if (alt.length !== lines.length) {
+    const f2 = measure(alt);
+    if (f2 > fs * 1.15) { bestLines = alt; fs = f2; }
+  }
+  const final = bestLines.slice();
+  lines.length = 0; final.forEach(l => lines.push(l));
+  const total = lines.length * fs * lh;
+  const y0 = (h - total) / 2 + fs * 0.78;
+  const make = (cls) => lines.map((line, i) => {
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('class', cls);
+    t.setAttribute('x', w / 2);
+    t.setAttribute('y', y0 + i * fs * lh);
+    t.setAttribute('font-size', fs);
+    t.textContent = line;
+    return t;
+  });
+  make('stitch').forEach(t => {
+    const sw = fs < 40 ? 2 : 3;
+    t.setAttribute('stroke-width', sw);
+    t.setAttribute('stroke-dasharray', `${sw} ${sw}`);
+    svg.appendChild(t);
+  });
+  make('fill').forEach(t => {
+    t.setAttribute('fill', el.dataset.fg);
+    svg.appendChild(t);
+  });
+}
+
+function drawSeams() {
+  const seams = document.getElementById('seams');
+  const cs = getComputedStyle(quilt);
+  const gap = parseFloat(cs.columnGap);
+  const cellW = parseFloat(cs.gridTemplateColumns.split(' ')[0]) + gap;
+  const cellH = parseFloat(cs.gridTemplateRows.split(' ')[0]) + gap;
+  const cols = cs.gridTemplateColumns.split(' ').length;
+  const rows = cs.gridTemplateRows.split(' ').length;
+  const W = quilt.clientWidth, H = quilt.clientHeight;
+  const edges = new Set();
+  quilt.querySelectorAll('.patch').forEach(el => {
+    const r = el.rect;
+    for (let x = r.x; x < r.x + r.w; x++) {
+      if (r.y > 0) edges.add(`h,${x},${r.y}`);
+      if (r.y + r.h < rows) edges.add(`h,${x},${r.y + r.h}`);
+    }
+    for (let y = r.y; y < r.y + r.h; y++) {
+      if (r.x > 0) edges.add(`v,${r.x},${y}`);
+      if (r.x + r.w < cols) edges.add(`v,${r.x + r.w},${y}`);
+    }
+  });
+  const d = gap;
+  let out = '';
+  edges.forEach(k => {
+    const [t, a, b] = k.split(',');
+    const x = +a, y = +b;
+    if (t === 'h') {
+      const x1 = x * cellW, x2 = Math.min((x + 1) * cellW, W), yy = y * cellH - d / 2;
+      out += `<line x1="${x1}" y1="${yy}" x2="${x2}" y2="${yy}" stroke-dashoffset="${-x1}"/>`;
+    } else {
+      const y1 = y * cellH, y2 = Math.min((y + 1) * cellH, H), xx = x * cellW - d / 2;
+      out += `<line x1="${xx}" y1="${y1}" x2="${xx}" y2="${y2}" stroke-dashoffset="${-y1}"/>`;
+    }
+  });
+  seams.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  seams.innerHTML = `<g stroke="${col('--denim-2')}" stroke-width="${d}" stroke-dasharray="${d} ${d}">${out}</g>`;
+}
+
+function decorate() {
+  drawSeams();
+  const narrow = innerWidth <= 720;
+  document.querySelectorAll('.patch.text').forEach(fitText);
+  const cs = getComputedStyle(quilt);
+  const cellW = parseFloat(cs.gridTemplateColumns.split(' ')[0]) + parseFloat(cs.columnGap);
+  const cellH = parseFloat(cs.gridTemplateRows.split(' ')[0]) + parseFloat(cs.rowGap);
+  const sub = narrow ? 1 : 2;
+  const sw = cellW / sub, sh = cellH / sub;
+  const line = narrow ? 1 : 1.5;
+  const step = narrow ? 8 : 12;
+
+  document.querySelectorAll('.patch[data-variant]').forEach(el => {
+    const w = el.clientWidth, h = el.clientHeight;
+    const c2 = el.dataset.c2;
+    let svg;
+    if (el.dataset.variant === 'hst') {
+      const n = Math.round(w / sw), m = Math.round(h / sh);
+      let tris = '';
+      for (let j = 0; j < m; j++) for (let i = 0; i < n; i++) {
+        const x = i * sw, y = j * sh;
+        tris += el.dataset.dir === 'a'
+          ? `<polygon points="${x},${y} ${x+sw},${y} ${x},${y+sh}"/>`
+          : `<polygon points="${x+sw},${y} ${x+sw},${y+sh} ${x},${y+sh}"/>`;
+      }
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}"><g fill="${c2}">${tris}</g></svg>`;
+    } else {
+      const cx = el.dataset.corner.includes('l') ? 0 : w;
+      const cy = el.dataset.corner.includes('t') ? 0 : h;
+      const R = Math.hypot(w, h);
+      let rings = '';
+      for (let r = step; r < R + step; r += step) {
+        rings += `<circle cx="${cx}" cy="${cy}" r="${r}"/>`;
+      }
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}"><g fill="none" stroke="${c2}" stroke-width="${line}" stroke-dasharray="${line * 2} ${line * 2}">${rings}</g></svg>`;
+    }
+    const url = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
+    el.style.backgroundImage = url;
+    el.style.backgroundSize = '100% 100%';
+    const img = el.querySelector('.img');
+    if (el.dataset.variant === 'hst') {
+      img.style.webkitMaskImage = url;
+      img.style.maskImage = url;
+    } else {
+      let pat = el.querySelector('.pat');
+      if (!pat) { pat = document.createElement('div'); pat.className = 'pat'; el.appendChild(pat); }
+      pat.style.backgroundImage = url;
+    }
+  });
+}
+decorate();
+
+const natural = {};
+let current = -1;
+let cluster = [];
+let placed = null;
+
+function loadSize(n) {
+  if (natural[n]) return Promise.resolve(natural[n]);
+  return new Promise(res => {
+    const im = new Image();
+    im.onload = () => { natural[n] = { w: im.naturalWidth, h: im.naturalHeight }; res(natural[n]); };
+    im.onerror = () => { natural[n] = { w: 3, h: 2 }; res(natural[n]); };
+    im.src = images[n];
+  });
+}
+
+function touching(a, b) {
+  const sideways = (a.x + a.w === b.x || b.x + b.w === a.x) && a.y < b.y + b.h && b.y < a.y + a.h;
+  const stacked  = (a.y + a.h === b.y || b.y + b.h === a.y) && a.x < b.x + b.w && b.x < a.x + a.w;
+  return sideways || stacked;
+}
+
+function setCluster(p) {
+  cluster.forEach(el => el.classList.remove('in'));
+  cluster = [...quilt.querySelectorAll('.patch:not(.text)')]
+    .filter(el => el === p || touching(el.rect, p.rect));
+  cluster.forEach(el => el.classList.add('in'));
+}
+
+function layout(n) {
+  const size = natural[n]; if (!size || !cluster.length) return;
+  let L = Infinity, T = Infinity, R = -Infinity, B = -Infinity;
+  cluster.forEach(el => {
+    const r = el.getBoundingClientRect();
+    L = Math.min(L, r.left); T = Math.min(T, r.top);
+    R = Math.max(R, r.right); B = Math.max(B, r.bottom);
+  });
+  const W = R - L, H = B - T;
+  const scale = Math.max(W / size.w, H / size.h);
+  const bw = size.w * scale, bh = size.h * scale;
+  const ox = L + (W - bw) / 2, oy = T + (H - bh) / 2;
+  placed = { ox, oy, bw, bh };
+  cluster.forEach(el => {
+    const img = el.querySelector('.img');
+    const r = img.getBoundingClientRect();
+    img.style.backgroundImage = `url("${images[n]}")`;
+    img.style.backgroundSize = `${bw}px ${bh}px`;
+    img.style.backgroundPosition = `${ox - r.left}px ${oy - r.top}px`;
+  });
+}
+
+async function show(p) {
+  const n = +p.dataset.index;
+  current = n;
+  setCluster(p);
+  await loadSize(n);
+  if (current !== n) return;
+  layout(n);
+  quilt.classList.add('revealing');
+}
+
+function open(n) {
+  if (!placed) return;
+  pic.style.left = placed.ox + 'px';
+  pic.style.top = placed.oy + 'px';
+  pic.style.width = placed.bw + 'px';
+  pic.style.height = placed.bh + 'px';
+  pic.style.backgroundImage = `url("${images[n]}")`;
+  full.classList.add('open');
+}
+
+function clear() {
+  quilt.classList.remove('revealing');
+  full.classList.remove('open');
+  cluster.forEach(el => el.classList.remove('in'));
+  cluster = [];
+  current = -1;
+}
+
+const touch = matchMedia('(hover: none)').matches;
+
+if (!touch) {
+  quilt.addEventListener('mouseover', e => {
+    if (full.classList.contains('open')) return;
+    const p = e.target.closest('.patch');
+    if (!p || p.classList.contains('text')) return;
+    show(p);
+  });
+  quilt.addEventListener('mouseleave', () => { if (!full.classList.contains('open')) clear(); });
+}
+
+full.addEventListener('click', () => clear());
+
+quilt.addEventListener('click', e => {
+  const p = e.target.closest('.patch');
+  if (!p || p.classList.contains('text')) return;
+  const n = +p.dataset.index;
+  if (touch) {
+    if (quilt.classList.contains('revealing') && current === n) open(n);
+    else show(p);
+  } else {
+    show(p).then(() => open(n));
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') clear(); });
+
+(() => {
+  const icon = document.getElementById('icon');
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 64;
+  const ctx = cv.getContext('2d');
+  const swatch = ['--denim-1','--denim-2','--denim-3','--red','--red-2','--orange','--orange-2','--cream'].map(col);
+  const navy = col('--navy');
+  const n = 2, cell = 64 / n;
+  const cells = [];
+  for (let i = 0; i < n * n; i++) cells.push(swatch[Math.floor(Math.random() * swatch.length)]);
+  function draw() {
+    ctx.fillStyle = navy;
+    ctx.fillRect(0, 0, 64, 64);
+    cells.forEach((c, i) => {
+      const x = (i % n) * cell, y = Math.floor(i / n) * cell;
+      ctx.fillStyle = c;
+      ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+    });
+    icon.href = cv.toDataURL('image/png');
+  }
+  function flip() {
+    const i = Math.floor(Math.random() * cells.length);
+    let c;
+    do { c = swatch[Math.floor(Math.random() * swatch.length)]; } while (c === cells[i]);
+    cells[i] = c;
+    draw();
+  }
+  draw();
+  setInterval(flip, 500);
+})();
+
+addEventListener('resize', () => {
+  build();
+  decorate();
+  clear();
+});
+</script>
+</body>
+</html>
